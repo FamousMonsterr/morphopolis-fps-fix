@@ -54,6 +54,9 @@ function Find-GameDir {
         if (Test-Path $vdf) {
             foreach ($m in [regex]::Matches((Get-Content $vdf -Raw), '"path"\s+"([^"]+)"')) {
                 $lib = $m.Groups[1].Value -replace '\\\\', '\'
+                # skip libraries on drives that no longer exist (unmounted disks)
+                $drive = $lib.Substring(0, 3)
+                if (-not (Test-Path $drive)) { continue }
                 $candidates.Add((Join-Path $lib 'steamapps\common\Morphopolis'))
             }
         }
