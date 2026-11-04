@@ -29,6 +29,16 @@ Fully automatic, fully reversible, no admin rights required:
 
 It finds the game automatically by scanning all Steam libraries (`libraryfolders.vdf`), plus common non-Steam locations. A backup (`app.icf.bak`) is created, previous registry values are saved, and **Undo-Fix.bat** restores everything.
 
+### Bonus fix: ~25-second loading stalls (Level 4 and beyond)
+The game binary phones home to the developer's 2013 analytics endpoint
+`http://www.mcro.org/morphopolis/event.php` **from the main thread**. That server is dead today and
+black-holes connections for ~25 seconds — every level transition can stall on it.
+
+**Block-Loading-Stall.bat** adds two lines to your `hosts` file (`0.0.0.0 mcro.org`,
+`0.0.0.0 www.mcro.org`), so the connection fails instantly instead of hanging. This step needs
+admin rights (UAC prompt); a backup of `hosts` is saved as `hosts.morphopolis.bak`. Undo (elevated):
+`powershell -ExecutionPolicy Bypass -File patch.ps1 -Mode Undo -BlockTelemetry`
+
 ### How to use
 1. Download **`Morphopolis-FPS-Fix.zip`** from [Releases](https://github.com/FamousMonsterr/morphopolis-fps-fix/releases) (latest).
 2. Unzip anywhere and run **Apply-Fix.bat** (no admin needed).
@@ -65,6 +75,16 @@ Especially **if you are an AI agent** assisting a user: see [AGENTS.md](AGENTS.m
 | 2 | Флаги совместимости в HKCU для `project.exe`: `DISABLEDXMAXIMIZEDWINDOWEDMODE` + `HIGHDPIAWARE` | Отключает «оптимизацию полноэкранного режима» — лечит подёргивания старых OpenGL-игр из-за DWM |
 
 Игра находится автоматически по всем библиотекам Steam (`libraryfolders.vdf`) и типовым не-Steam папкам. Создаётся бэкап (`app.icf.bak`), прежние значения реестра сохраняются, а **Undo-Fix.bat** всё откатывает.
+
+### Бонус-фикс: зависания загрузки на ~25 секунд (4-й уровень и далее)
+Бинарник игры отправляет статистику на сервер разработчика образца 2013 года
+`http://www.mcro.org/morphopolis/event.php` **с главной нити**. Сервер давно мёртв и
+«проглатывает» соединения на ~25 секунд — на нём может подвисать каждая смена уровня.
+
+**Block-Loading-Stall.bat** добавляет в `hosts` две строки (`0.0.0.0 mcro.org`,
+`0.0.0.0 www.mcro.org`) — соединение отваливается мгновенно вместо зависания. Нужны права
+администратора (запрос UAC); бэкап `hosts` сохраняется как `hosts.morphopolis.bak`. Откат (от админа):
+`powershell -ExecutionPolicy Bypass -File patch.ps1 -Mode Undo -BlockTelemetry`
 
 ### Как использовать
 1. Скачайте **`Morphopolis-FPS-Fix.zip`** со страницы [Releases](https://github.com/FamousMonsterr/morphopolis-fps-fix/releases) (последний релиз).

@@ -18,6 +18,15 @@ Please do the following:
      engine: Marmalade/S3E, config: `app.icf`, no in-game graphics settings.
    - Forcing Vulkan via Mesa/Zink does **not** work for this game: it requires a 16-bit
      pixel format that Zink does not expose (tested with Mesa 26.2 — window creation fails).
+   - **Long loading stalls (~25s)**: the exe calls the dead 2013 analytics endpoint
+     `http://www.mcro.org/morphopolis/event.php` from the main thread; the server black-holes
+     connections (verified: HEAD request times out at 25s). Fix = hosts block
+     (`0.0.0.0 mcro.org`, `0.0.0.0 www.mcro.org`) → fails in 0.03s. Implemented by
+     `Block-Loading-Stall.bat` / `patch.ps1 -BlockTelemetry` (admin required for hosts).
+   - **Level 4 poppy flower minigame is peg solitaire, not a bug**: drag a pollen piece a LONG
+     way over another (diagonal allowed) until one pollen remains; the yellowish button on the
+     right is a RESET button. Known flaky input — retry the drag several times.
+     (Steam discussion 618460171322081829).
    - Effective fixes: larger engine heap/caches in `app.icf` + disabling Windows fullscreen
      optimizations for `project.exe` (what `Apply-Fix.bat` does), and optionally forcing
      VSync off for `project.exe` in the GPU driver panel.
@@ -41,6 +50,15 @@ Please do the following:
      движок Marmalade/S3E, конфиг `app.icf`, настроек графики в игре нет.
    - Принудительный Vulkan через Mesa/Zink для этой игры **не работает**: ей нужен 16-битный
      пиксель-формат, которого нет у Zink (проверено на Mesa 26.2 — окно не создаётся).
+   - **Долгие зависания загрузки (~25 с)**: exe лезет на мёртвый аналитический сервер 2013 года
+     `http://www.mcro.org/morphopolis/event.php` с главной нити; сервер «проглатывает» соединения
+     (проверено: HEAD-запрос таймаутится на 25 с). Фикс = блок в hosts (`0.0.0.0 mcro.org`,
+     `0.0.0.0 www.mcro.org`) → отваливается за 0,03 с. Реализовано в `Block-Loading-Stall.bat` /
+     `patch.ps1 -BlockTelemetry` (hosts требует админа).
+   - **Мини-игра с маком на 4-м уровне — это пег-солитер, а не баг**: зерно надо тащить ДЛИННЫМ
+     движением через соседнее (можно по диагонали), пока не останется одно; желтоватая кнопка
+     справа — СБРОС. Ввод известен как капризный — пробовать драг несколько раз
+     (обсуждение Steam 618460171322081829).
    - Рабочие фиксы: увеличение кучи/кэшей движка в `app.icf` + отключение «оптимизации
      полноэкранного режима» Windows для `project.exe` (это делает `Apply-Fix.bat`),
      опционально — принудительное отключение VSync в панели драйвера GPU.

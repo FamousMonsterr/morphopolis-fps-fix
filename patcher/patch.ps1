@@ -7,13 +7,18 @@
 #   2. HKCU compatibility flags for project.exe:
 #      DISABLEDXMAXIMIZEDWINDOWEDMODE + HIGHDPIAWARE
 #      (fixes DWM-induced stutter of legacy OpenGL games on Windows 10/11)
+#   3. Optional (-BlockTelemetry): block the game's dead 2013 analytics server
+#      (www.mcro.org) in the hosts file - its connection black-holes for ~25s
+#      during level loading. Needs admin rights (hosts file). Use the
+#      Block-Loading-Stall.bat launcher which elevates automatically.
 #
-# No admin rights required (writes to HKCU only).
+# No admin rights required for parts 1-2 (writes to HKCU only).
 
 param(
     [ValidateSet('Patch', 'Undo', 'Status')]
     [string]$Mode = 'Patch',
-    [string]$GamePath = ''
+    [string]$GamePath = '',
+    [switch]$BlockTelemetry
 )
 
 $ErrorActionPreference = 'Stop'
@@ -109,6 +114,41 @@ function Get-CompatValue {
     if ($p) { $p.$exe } else { $null }
 }
 
+# ---- optional: block dead telemetry (needs admin) ---------------------------
+$hostsFile  = "$env:WinDir\System32\drivers\etc\hosts"
+$hostsBak   = "$env:WinDir\System32\drivers\etc\hosts.morphopolis.bak"
+$telemetryMarker = '# Morphopolis FPS Fix: dead 2013 analytics server causes ~25s loading stalls'
+
+function Test-IsAdmin {
+    ([Security.Principal.WindowsPrincipal][Security.Principal.WindowsIdentity]::GetCurrent()).IsInRole([Security.Principal.WindowsBuiltInRole]::Administrator)
+}
+
+function Block-TelemetryHosts {
+    if (-not (Test-IsAdmin)) {
+        Write-Warn2 'hosts blocking needs admin rights. Run Block-Loading-Stall.bat (it elevates itself),'
+        Write-Warn2 'or run this from an elevated PowerShell:  .\patch.ps1 -Mode Patch -BlockTelemetry'
+        return
+    }
+    $content = Get-Content $hostsFile -Raw
+    if ($content -match 'mcro\.org') {
+        Write-Ok 'hosts already blocks mcro.org - loading-stall fix already in place.'
+        return
+    }
+    if (-not (Test-Path $hostsBak)) { Copy-Item $hostsFile $hostsBak -Force; Write-Info "hosts backup saved: $hostsBak" }
+    Add-Content -Path $hostsFile -Value "`r`n$telemetryMarker`r`n0.0.0.0 mcro.org`r`n0.0.0.0 www.mcro.org" -Encoding ASCII
+    ipconfig /flushdns | Out-Null
+    Write-Ok 'hosts updated: mcro.org blocked (game loading no longer stalls ~25s on the dead server).'
+}
+
+function Undo-TelemetryHosts {
+    if (-not (Test-IsAdmin)) { Write-Warn2 'hosts undo needs admin rights (run from an elevated shell).'; return }
+    if (-not (Test-Path $hostsFile)) { return }
+    $lines = Get-Content $hostsFile | Where-Object { $_ -notmatch 'mcro\.org' -and $_ -ne $telemetryMarker }
+    Set-Content -Path $hostsFile -Value $lines -Encoding ASCII
+    ipconfig /flushdns | Out-Null
+    Write-Ok 'hosts cleaned: mcro.org block removed.'
+}
+
 # ---- modes -----------------------------------------------------------------
 switch ($Mode) {
 
@@ -161,10 +201,13 @@ switch ($Mode) {
         New-ItemProperty -Path $layersKey -Name $exe -Value $compatFlags -PropertyType String -Force | Out-Null
         Write-Ok 'Windows compatibility flags set: fullscreen optimizations OFF, DPI awareness ON.'
 
+        if ($BlockTelemetry) { Block-TelemetryHosts }
+
         Write-Host ''
         Write-Ok 'Done! Launch Morphopolis and check the result.'
         Write-Info 'Extra (manual): in AMD Adrenalin set "Wait for vertical refresh = Off" for project.exe;'
         Write-Info 'in NVIDIA Control Panel set "Vertical sync = Off" for project.exe.'
+        Write-Info 'Long loading? Run Block-Loading-Stall.bat once (blocks the dead 2013 analytics server).'
     }
 
     'Undo' {
@@ -187,6 +230,7 @@ switch ($Mode) {
             }
             Write-Ok 'compatibility flags removed.'
         }
+        if ($BlockTelemetry) { Undo-TelemetryHosts }
         Write-Host ''
         Write-Ok 'Undone. The game is back to its original state.'
     }
